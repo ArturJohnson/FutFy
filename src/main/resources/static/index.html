@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FutManager - Gestão de Elenco Profissional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        fut: {
+                            black: '#040906',
+                            dark: '#08140e',
+                            card: '#0f241a',
+                            cardHover: '#163325',
+                            border: '#1e4834',
+                            gold: '#eab308',
+                            goldDark: '#855d00',
+                            pitch: '#22c55e',
+                            pitchHover: '#16a34a',
+                            subtext: '#82a893'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #040906;
+            color: white;
+            background-image:
+                    radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.12) 0%, transparent 60%),
+                    radial-gradient(circle at 100% 100%, rgba(234, 179, 8, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        .hero-stadium {
+            background: linear-gradient(180deg, rgba(18, 46, 32, 0.8) 0%, rgba(8, 20, 14, 0.95) 100%),
+            radial-gradient(circle at 50% 30%, rgba(34, 197, 94, 0.25) 0%, transparent 70%);
+        }
+        .card-fut {
+            background: linear-gradient(145deg, #122a1f 0%, #0a1811 100%);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+        .modal {
+            background: rgba(8, 20, 14, 0.97);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-fut-black text-white min-h-screen selection:bg-fut-pitch selection:text-black">
+<div id="root"></div>
+
+<script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    /* SVG Icons collection */
+    const Icons = {
+        Trophy: ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+            </svg>
+        ),
+        Football: ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 7l-3 2v3l3 2 3-2V9l-3-2z" />
+                <path d="M12 2v5" />
+                <path d="M12 17v5" />
+                <path d="M4.2 7.5l4.3 1.5" />
+                <path d="M15.5 9l4.3-1.5" />
+                <path d="M4.2 16.5l4.3-1.5" />
+                <path d="M15.5 15l4.3 1.5" />
+            </svg>
+        ),
+        Users: ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        ),
+        Plus: ({ size = 18 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        ),
+        Search: ({ size = 18 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        ),
+        Edit: ({ size = 16 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 5 4 4M4 20l4-.8L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg>
+        ),
+        Trash: ({ size = 16 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg>
+        ),
+        Refresh: ({ size = 16 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+        ),
+        Shirt: ({ size = 18 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+        ),
+        Activity: ({ size = 18 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        )
+    };
+
+    // Initial default state structure for players
+    const EMPTY_PLAYER = {
+        nome: '',
+        numeroCamisa: '',
+        posicao: 'ATA',
+        pernaPreferida: 'DIREITA',
+        dataNascimento: '',
+        altura: '',
+        peso: '',
+        clubeAnterior: '',
+        situacao: 'TITULAR',
+        observacoes: ''
+    };
+
+    // Mock initial data if API isn't online
+    const INITIAL_MOCK_PLAYERS = [
+        { id: 1, nome: "Lucas 'Rayo' Silva", numeroCamisa: 10, posicao: "MEI", pernaPreferida: "DIREITA", dataNascimento: "1998-05-14", altura: 1.78, peso: 73, clubeAnterior: "São Paulo FC", situacao: "TITULAR", observacoes: "Excelente visão de jogo e cobrança de faltas." },
+        { id: 2, nome: "Gabriel 'Muralha' Santos", numeroCamisa: 1, posicao: "GOL", pernaPreferida: "DIREITA", dataNascimento: "1995-11-20", altura: 1.93, peso: 88, clubeAnterior: "Flamengo", situacao: "TITULAR", observacoes: "Especialista em pênaltis." },
+        { id: 3, nome: "Rodrigo 'Xerife' Costa", numeroCamisa: 4, posicao: "ZAG", pernaPreferida: "DIREITA", dataNascimento: "1996-03-08", altura: 1.89, peso: 84, clubeAnterior: "Palmeiras", situacao: "TITULAR", observacoes: "Forte no jogo aéreo defensivo e ofensivo." },
+        { id: 4, nome: "Matheus 'Flecha' Lima", numeroCamisa: 7, posicao: "ATA", pernaPreferida: "ESQUERDA", dataNascimento: "2001-08-30", altura: 1.75, peso: 69, clubeAnterior: "Fluminense", situacao: "RELACIONADO", observacoes: "Ponta de alta velocidade e drible curto." },
+        { id: 5, nome: "Felipe 'Trilho' Augusto", numeroCamisa: 6, posicao: "LAT", pernaPreferida: "ESQUERDA", dataNascimento: "1999-02-12", altura: 1.80, peso: 75, clubeAnterior: "Internacional", situacao: "LESIONADO", observacoes: "Em transição física pós lesão no tornozelo." }
+    ];
+
+    function App() {
+        const [screen, setScreen] = useState('principal'); // 'principal' | 'cadastro'
+        const [apiUrl, setApiUrl] = useState('http://localhost:8080/api/jogadores');
+        const [urlEdit, setUrlEdit] = useState(apiUrl);
+        const [showConfig, setShowConfig] = useState(false);
+        const [statusApi, setStatusApi] = useState('carregando'); // 'conectado' | 'erro' | 'carregando' | 'mock'
+        const [erroDetalhe, setErroDetalhe] = useState('');
+
+        const [jogadores, setJogadores] = useState([]);
+        const [busca, setBusca] = useState('');
+        const [filtroPosicao, setFiltroPosicao] = useState('TODOS');
+        const [filtroSituacao, setFiltroSituacao] = useState('TODOS');
+
+        const [form, setForm] = useState(EMPTY_PLAYER);
+        const [editando, setEditando] = useState(null);
+        const [deletando, setDeletando] = useState(null);
+        const [toast, setToast] = useState(null);
+        const [carregando, setCarregando] = useState(false);
+
+        const avisar = (mensagem, tipo = 'info') => {
+            setToast({ mensagem, tipo });
+            setTimeout(() => setToast(null), 4000);
+        };
+
+        // REST API Requests
+        const request = async (path = '', options = {}) => {
+            const res = await fetch(`${apiUrl.replace(/\/$/, '')}${path}`, options);
+            if (!res.ok) throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
+            if (res.status === 204) return null;
+            const text = await res.text();
+            return text ? JSON.parse(text) : null;
+        };
+
+        const carregarJogadores = async () => {
+            setCarregando(true);
+            setErroDetalhe('');
+            try {
+                const dados = await request();
+                setJogadores(Array.isArray(dados) ? dados : (dados ? [dados] : []));
+                setStatusApi('conectado');
+            } catch (e) {
+                // Fallback to local state mock if API is not running
+                setStatusApi('mock');
+                setErroDetalhe(e.message || 'Servidor offline. Exibindo modo de demonstração local.');
+                if (jogadores.length === 0) {
+                    setJogadores(INITIAL_MOCK_PLAYERS);
+                }
+            } finally {
+                setCarregando(false);
+            }
+        };
+
+        useEffect(() => {
+            carregarJogadores();
+        }, [apiUrl]);
+
+        const salvar = async (e) => {
+            e.preventDefault();
+            const payload = {
+                ...form,
+                numeroCamisa: Number(form.numeroCamisa),
+                altura: form.altura === '' ? null : Number(form.altura),
+                peso: form.peso === '' ? null : Number(form.peso)
+            };
+
+            if (statusApi === 'mock') {
+                // Offline fallback handling
+                if (editando !== null) {
+                    setJogadores(prev => prev.map(j => j.id === editando ? { ...payload, id: editando } : j));
+                    avisar('Jogador atualizado (Modo Local)!', 'sucesso');
+                } else {
+                    const novoId = jogadores.length ? Math.max(...jogadores.map(j => j.id || 0)) + 1 : 1;
+                    setJogadores(prev => [{ ...payload, id: novoId }, ...prev]);
+                    avisar('Jogador cadastrado (Modo Local)!', 'sucesso');
+                }
+                setForm(EMPTY_PLAYER);
+                setEditando(null);
+                setScreen('principal');
+                return;
+            }
+
+            try {
+                if (editando !== null) {
+                    await request('/' + editando, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    avisar('Atleta atualizado com sucesso na API!', 'sucesso');
+                } else {
+                    await request('', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    avisar('Atleta cadastrado no elenco da API!', 'sucesso');
+                }
+                setForm(EMPTY_PLAYER);
+                setEditando(null);
+                setScreen('principal');
+                await carregarJogadores();
+            } catch (err) {
+                avisar(`Erro ao salvar atleta: ${err.message}`, 'erro');
+            }
+        };
+
+        const editar = (j) => {
+            setForm({
+                nome: j.nome || '',
+                numeroCamisa: j.numeroCamisa ?? '',
+                posicao: j.posicao || 'ATA',
+                pernaPreferida: j.pernaPreferida || 'DIREITA',
+                dataNascimento: j.dataNascimento || '',
+                altura: j.altura ?? '',
+                peso: j.peso ?? '',
+                clubeAnterior: j.clubeAnterior || '',
+                situacao: j.situacao || 'TITULAR',
+                observacoes: j.observacoes || ''
+            });
+            setEditando(j.id);
+            setScreen('cadastro');
+        };
+
+        const excluir = async (id) => {
+            if (statusApi === 'mock') {
+                setJogadores(prev => prev.filter(j => j.id !== id));
+                avisar('Atleta removido (Modo Local)!', 'sucesso');
+                setDeletando(null);
+                return;
+            }
+
+            try {
+                await request('/' + id, { method: 'DELETE' });
+                avisar('Atleta removido do elenco!', 'sucesso');
+                setDeletando(null);
+                await carregarJogadores();
+            } catch (err) {
+                avisar(`Erro ao excluir: ${err.message}`, 'erro');
+            }
+        };
+
+        // Position Badge colors
+        const getPosicaoBadge = (pos) => {
+            switch(pos) {
+                case 'GOL': return 'bg-amber-500/20 text-amber-400 border-amber-500/40';
+                case 'ZAG': return 'bg-blue-500/20 text-blue-400 border-blue-500/40';
+                case 'LAT': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40';
+                case 'MEI': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
+                case 'ATA': return 'bg-rose-500/20 text-rose-400 border-rose-500/40';
+                default: return 'bg-neutral-800 text-neutral-300 border-neutral-700';
+            }
+        };
+
+        // Status Badge colors
+        const getSituacaoBadge = (sit) => {
+            switch(sit) {
+                case 'TITULAR': return 'bg-fut-pitch/20 text-fut-pitch border-fut-pitch/30';
+                case 'RELACIONADO': return 'bg-sky-500/20 text-sky-300 border-sky-500/30';
+                case 'LESIONADO': return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
+                case 'SUSPENSO': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+                default: return 'bg-neutral-800 text-neutral-400 border-neutral-700';
+            }
+        };
+
+        // Computed metric filters
+        const filtrados = useMemo(() => jogadores.filter(j => {
+            const texto = [j.nome, j.clubeAnterior, j.numeroCamisa, j.posicao].filter(Boolean).join(' ').toLowerCase();
+            const bateTexto = texto.includes(busca.toLowerCase());
+            const batePosicao = filtroPosicao === 'TODOS' || j.posicao === filtroPosicao;
+            const bateSituacao = filtroSituacao === 'TODOS' || j.situacao === filtroSituacao;
+            return bateTexto && batePosicao && bateSituacao;
+        }), [jogadores, busca, filtroPosicao, filtroSituacao]);
+
+        const countAtaMei = jogadores.filter(j => j.posicao === 'ATA' || j.posicao === 'MEI').length;
+        const countDefGol = jogadores.filter(j => j.posicao === 'ZAG' || j.posicao === 'LAT' || j.posicao === 'GOL').length;
+        const countLesionados = jogadores.filter(j => j.situacao === 'LESIONADO').length;
+
+        const fieldCss = "w-full bg-fut-dark border border-fut-border rounded-xl p-3 text-sm text-white focus:outline-none focus:border-fut-pitch transition duration-200";
+        const labelCss = "block text-fut-subtext font-bold mb-1.5 uppercase tracking-wider text-[11px]";
+
+        return (
+            <div className="flex min-h-screen bg-fut-black text-white">
+                {/* Toast notification */}
+                {toast && (
+                    <div className={`fixed top-5 right-5 z-[70] px-5 py-3.5 rounded-2xl text-xs font-extrabold shadow-2xl border flex items-center gap-3 backdrop-blur-md animate-bounce ${
+                        toast.tipo === 'sucesso'
+                            ? 'bg-fut-dark/90 text-fut-pitch border-fut-pitch/50 shadow-fut-pitch/10'
+                            : toast.tipo === 'erro'
+                                ? 'bg-fut-dark/90 text-rose-400 border-rose-500/50 shadow-rose-500/10'
+                                : 'bg-fut-dark/90 text-white border-neutral-700'
+                    }`}>
+                        <Icons.Football size={18} />
+                        {toast.mensagem}
+                    </div>
+                )}
+
+                {/* Sidebar Navigation */}
+                <aside className="w-72 bg-fut-dark p-6 hidden md:flex flex-col justify-between border-r border-fut-border shrink-0">
+                    <div className="space-y-8">
+                        {/* Logo */}
+                        <div className="flex items-center gap-3 px-2">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-fut-pitch to-emerald-300 text-black flex items-center justify-center font-black shadow-lg shadow-fut-pitch/20">
+                                <Icons.Football size={24} />
+                            </div>
+                            <div>
+                                <span className="text-2xl font-black tracking-tight text-white">fut<span className="text-fut-pitch">Fy</span></span>
+                                <span className="block text-[10px] uppercase font-bold text-fut-subtext tracking-widest">Manager Pro</span>
+                            </div>
+                        </div>
+
+                        {/* Navigation Links */}
+                        <nav className="space-y-2">
+                            <button
+                                onClick={() => setScreen('principal')}
+                                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-xs font-bold transition duration-200 ${
+                                    screen === 'principal' ? 'bg-fut-card text-fut-pitch border border-fut-border shadow-inner' : 'text-fut-subtext hover:text-white hover:bg-fut-card/50'
+                                }`}
+                            >
+                                <Icons.Users size={18} /> Elenco Principal
+                            </button>
+
+                            <button
+                                onClick={() => { setForm(EMPTY_PLAYER); setEditando(null); setScreen('cadastro'); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-xs font-bold transition duration-200 ${
+                                    screen === 'cadastro' ? 'bg-fut-card text-fut-pitch border border-fut-border shadow-inner' : 'text-fut-subtext hover:text-white hover:bg-fut-card/50'
+                                }`}
+                            >
+                                <Icons.Plus size={18} /> Cadastrar Atleta
+                            </button>
+                        </nav>
+                    </div>
+
+                    {/* API Backend status card */}
+                    <div className="bg-fut-card p-4 rounded-2xl border border-fut-border space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-fut-subtext text-[10px] uppercase font-bold tracking-wider">REST API Endpoint</span>
+                            <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${
+                                statusApi === 'conectado' ? 'bg-fut-pitch shadow-lg shadow-fut-pitch/50' :
+                                    statusApi === 'mock' ? 'bg-amber-400 shadow-lg shadow-amber-400/50' : 'bg-rose-500'
+                            }`} />
+                        </div>
+                        <div className="text-[11px] font-mono break-all text-neutral-300 bg-fut-dark/80 p-2 rounded-lg border border-fut-border/60">
+                            {apiUrl}
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-1">
+            <span className="text-fut-subtext font-medium text-[11px]">
+              {statusApi === 'conectado' ? 'Servidor Conectado' : statusApi === 'mock' ? 'Modo Demonstrativo' : 'Desconectado'}
+            </span>
+                            <button
+                                onClick={() => { setUrlEdit(apiUrl); setShowConfig(true); }}
+                                className="text-fut-pitch font-bold hover:underline text-xs"
+                            >
+                                Alterar
+                            </button>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* Main Content Area */}
+                <main className="flex-1 min-w-0 flex flex-col">
+                    {/* Header */}
+                    <header className="sticky top-0 z-30 bg-fut-dark/80 backdrop-blur-md border-b border-fut-border px-5 md:px-8 py-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3 md:hidden">
+                            <div className="w-8 h-8 rounded-lg bg-fut-pitch text-black flex items-center justify-center font-black">
+                                <Icons.Football size={18} />
+                            </div>
+                            <span className="text-xl font-black">fut<span className="text-fut-pitch">Fy</span></span>
+                        </div>
+
+                        <div className="hidden md:block text-xs font-bold text-fut-subtext tracking-wider">
+                            GESTAO DE ELENCO / <span className="text-white">{screen === 'cadastro' ? (editando !== null ? 'EDITAR ATLETA' : 'NOVO JOGADOR') : 'PAINEL TÁTICO'}</span>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => carregarJogadores()}
+                                disabled={carregando}
+                                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-fut-border text-xs font-bold hover:bg-fut-card transition disabled:opacity-50"
+                            >
+                                <Icons.Refresh size={14} className={carregando ? 'animate-spin' : ''} />
+                                <span className="hidden sm:inline">{carregando ? 'Sincronizando...' : 'Atualizar'}</span>
+                            </button>
+
+                            <button
+                                onClick={() => { setForm(EMPTY_PLAYER); setEditando(null); setScreen('cadastro'); }}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-fut-pitch hover:bg-fut-pitchHover text-black text-xs font-black shadow-lg shadow-fut-pitch/20 transition transform active:scale-95"
+                            >
+                                <Icons.Plus size={16} /> Novo Atleta
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Dynamic Body */}
+                    <div className="p-5 md:p-8 max-w-7xl mx-auto w-full flex-1">
+                        {screen === 'principal' ? (
+                            <>
+                                {/* Hero Banner */}
+                                <section className="hero-stadium rounded-3xl p-6 md:p-10 mb-8 border border-fut-border relative overflow-hidden">
+                                    <div className="relative z-10 max-w-2xl">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fut-pitch/10 border border-fut-pitch/30 text-fut-pitch text-[11px] uppercase tracking-widest font-extrabold mb-4">
+                                            <Icons.Trophy size={14} /> Temporada 2026/2027
+                                        </div>
+                                        <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-3 text-white">
+                                            Gestão Tática de <span className="gold-gradient-text">Alta Performance</span>
+                                        </h1>
+                                        <p className="text-fut-subtext text-sm leading-relaxed mb-2">
+                                            Painel completo para acompanhamento de contrato, atributos físicos e situação clínica do elenco profissional. Totalmente integrado à sua API REST backend.
+                                        </p>
+                                    </div>
+                                </section>
+
+                                {/* Status Notice if Backend is offline */}
+                                {statusApi === 'mock' && (
+                                    <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                        <div>
+                                            <b className="text-amber-300 flex items-center gap-2">
+                                                <Icons.Activity size={16} /> Backend REST não localizado em {apiUrl}
+                                            </b>
+                                            <p className="text-fut-subtext text-xs mt-1">
+                                                O aplicativo está em modo local demonstrativo. As alterações serão mantidas na memória do navegador.
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => { setUrlEdit(apiUrl); setShowConfig(true); }}
+                                            className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold text-xs hover:bg-amber-500/30 border border-amber-500/40 shrink-0"
+                                        >
+                                            Ajustar URL
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Metric Cards */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                                    <div className="bg-fut-card border border-fut-border rounded-2xl p-5 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-fut-subtext text-xs font-bold uppercase tracking-wider">Total do Elenco</p>
+                                            <p className="text-3xl font-black mt-1 text-white">{jogadores.length} <span className="text-xs text-fut-subtext font-normal">atletas</span></p>
+                                        </div>
+                                        <div className="p-3 bg-fut-pitch/10 text-fut-pitch rounded-xl border border-fut-pitch/20">
+                                            <Icons.Shirt size={24} />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-fut-card border border-fut-border rounded-2xl p-5 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-fut-subtext text-xs font-bold uppercase tracking-wider">Meias e Atacantes</p>
+                                            <p className="text-3xl font-black mt-1 text-emerald-400">{countAtaMei}</p>
+                                        </div>
+                                        <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                                            <Icons.Football size={24} />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-fut-card border border-fut-border rounded-2xl p-5 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-fut-subtext text-xs font-bold uppercase tracking-wider">Defensores e Goleiros</p>
+                                            <p className="text-3xl font-black mt-1 text-blue-400">{countDefGol}</p>
+                                        </div>
+                                        <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
+                                            <Icons.Users size={24} />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-fut-card border border-fut-border rounded-2xl p-5 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-fut-subtext text-xs font-bold uppercase tracking-wider">DM / Lesionados</p>
+                                            <p className="text-3xl font-black mt-1 text-rose-400">{countLesionados}</p>
+                                        </div>
+                                        <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20">
+                                            <Icons.Activity size={24} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Filters and Controls */}
+                                <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between mb-6">
+                                    <div>
+                                        <h2 className="text-xl font-black tracking-tight">Atletas Cadastrados</h2>
+                                        <p className="text-fut-subtext text-xs mt-0.5">Listagem oficial sincronizada com backend</p>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        {/* Search bar */}
+                                        <div className="flex items-center gap-2 bg-fut-dark border border-fut-border rounded-xl px-4 py-2.5 focus-within:border-fut-pitch transition">
+                                            <Icons.Search size={18} className="text-fut-subtext" />
+                                            <input
+                                                value={busca}
+                                                onChange={e => setBusca(e.target.value)}
+                                                placeholder="Nome, camisa ou clube..."
+                                                className="bg-transparent text-sm outline-none w-full sm:w-48 placeholder:text-neutral-500"
+                                            />
+                                        </div>
+
+                                        {/* Position Filter */}
+                                        <select
+                                            value={filtroPosicao}
+                                            onChange={e => setFiltroPosicao(e.target.value)}
+                                            className="bg-fut-dark border border-fut-border rounded-xl px-4 py-2.5 text-sm outline-none font-medium focus:border-fut-pitch cursor-pointer"
+                                        >
+                                            <option value="TODOS">Todas Posições</option>
+                                            <option value="GOL">Goleiro (GOL)</option>
+                                            <option value="ZAG">Zagueiro (ZAG)</option>
+                                            <option value="LAT">Lateral (LAT)</option>
+                                            <option value="MEI">Meio-Campo (MEI)</option>
+                                            <option value="ATA">Atacante (ATA)</option>
+                                        </select>
+
+                                        {/* Status Filter */}
+                                        <select
+                                            value={filtroSituacao}
+                                            onChange={e => setFiltroSituacao(e.target.value)}
+                                            className="bg-fut-dark border border-fut-border rounded-xl px-4 py-2.5 text-sm outline-none font-medium focus:border-fut-pitch cursor-pointer"
+                                        >
+                                            <option value="TODOS">Todas Situações</option>
+                                            <option value="TITULAR">Titulares</option>
+                                            <option value="RELACIONADO">Relacionados</option>
+                                            <option value="LESIONADO">Lesionados (DM)</option>
+                                            <option value="SUSPENSO">Suspensos</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Grid of Player FIFA-Style Cards */}
+                                {carregando && jogadores.length === 0 ? (
+                                    <div className="text-center py-20 text-fut-subtext flex flex-col items-center gap-3">
+                                        <Icons.Refresh size={32} className="animate-spin text-fut-pitch" />
+                                        <p className="font-bold">Carregando elenco da API REST...</p>
+                                    </div>
+                                ) : filtrados.length === 0 ? (
+                                    <div className="bg-fut-card border border-fut-border rounded-3xl p-12 text-center max-w-lg mx-auto my-8">
+                                        <div className="w-16 h-16 rounded-2xl bg-fut-pitch/10 text-fut-pitch flex items-center justify-center mx-auto mb-4 border border-fut-pitch/20">
+                                            <Icons.Football size={32} />
+                                        </div>
+                                        <h3 className="font-black text-lg">Nenhum jogador localizado</h3>
+                                        <p className="text-fut-subtext text-xs mt-2 leading-relaxed">
+                                            Não encontramos resultados para os filtros selecionados. Tente ajustar a busca ou cadastre um novo atleta.
+                                        </p>
+                                        <button
+                                            onClick={() => { setForm(EMPTY_PLAYER); setEditando(null); setScreen('cadastro'); }}
+                                            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-fut-pitch text-black px-5 py-3 font-black text-xs hover:bg-fut-pitchHover transition shadow-lg shadow-fut-pitch/20"
+                                        >
+                                            <Icons.Plus size={16} /> Cadastrar Jogador
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                                        {filtrados.map((j, idx) => (
+                                            <article key={j.id ?? idx} className="card-fut border border-fut-border/80 rounded-2xl p-5 hover:border-fut-pitch/50 transition duration-300 relative group flex flex-col justify-between">
+                                                <div>
+                                                    {/* Top Bar Card */}
+                                                    <div className="flex justify-between items-start gap-3 mb-4">
+                                                        <div className="flex items-center gap-3">
+                                                            {/* Shirt Number Badge */}
+                                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-fut-border to-fut-dark border border-fut-pitch/30 flex items-center justify-center text-fut-pitch font-black text-xl shadow-inner shrink-0">
+                                                                #{j.numeroCamisa || '0'}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <h3 className="font-black text-base truncate text-white group-hover:text-fut-pitch transition">
+                                                                    {j.nome || 'Sem Nome'}
+                                                                </h3>
+                                                                <p className="text-fut-subtext text-xs truncate">
+                                                                    {j.clubeAnterior ? `Ex: ${j.clubeAnterior}` : 'Clube de Origem N/A'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            {/* Position Badge */}
+                                                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-md border ${getPosicaoBadge(j.posicao)}`}>
+                              {j.posicao}
+                            </span>
+                                                            {/* Situation Badge */}
+                                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getSituacaoBadge(j.situacao)}`}>
+                              {j.situacao}
+                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Technical Attributes Grid */}
+                                                    <div className="grid grid-cols-3 gap-2 bg-fut-dark/80 rounded-xl p-3 border border-fut-border/40 text-xs text-center mb-4">
+                                                        <div>
+                                                            <span className="text-fut-subtext text-[10px] block font-bold uppercase">Perna</span>
+                                                            <b className="text-white text-xs">{j.pernaPreferida === 'DIREITA' ? 'Dir.' : j.pernaPreferida === 'ESQUERDA' ? 'Esq.' : 'Ambas'}</b>
+                                                        </div>
+                                                        <div className="border-x border-fut-border/50">
+                                                            <span className="text-fut-subtext text-[10px] block font-bold uppercase">Altura</span>
+                                                            <b className="text-white text-xs">{j.altura ? `${j.altura}m` : '-'}</b>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-fut-subtext text-[10px] block font-bold uppercase">Peso</span>
+                                                            <b className="text-white text-xs">{j.peso ? `${j.peso}kg` : '-'}</b>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Observations / Notes */}
+                                                    {j.observacoes && (
+                                                        <p className="text-xs text-fut-subtext bg-fut-dark/40 rounded-lg p-2.5 border border-fut-border/30 line-clamp-2 mb-4 italic">
+                                                            "{j.observacoes}"
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                {/* Action buttons */}
+                                                <div className="flex gap-2 pt-3 border-t border-fut-border/60">
+                                                    <button
+                                                        onClick={() => editar(j)}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-fut-border bg-fut-dark/50 py-2 text-xs font-bold hover:bg-fut-card hover:border-fut-pitch/40 text-neutral-200 hover:text-white transition"
+                                                    >
+                                                        <Icons.Edit size={14} /> Editar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeletando(j.id)}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-rose-900/40 bg-rose-950/20 text-rose-400 py-2 text-xs font-bold hover:bg-rose-900/40 hover:border-rose-500/50 transition"
+                                                    >
+                                                        <Icons.Trash size={14} /> Excluir
+                                                    </button>
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <footer className="mt-8 text-center text-[11px] text-fut-subtext">
+                                    API Configurada: <code className="text-fut-pitch">{apiUrl}</code> · Suporta verbos GET, POST, PUT e DELETE
+                                </footer>
+                            </>
+                        ) : (
+                            /* Registration / Edit Player Form */
+                            <section className="max-w-3xl mx-auto">
+                                <button
+                                    onClick={() => { setScreen('principal'); setEditando(null); setForm(EMPTY_PLAYER); }}
+                                    className="text-fut-subtext hover:text-white text-xs font-bold mb-5 flex items-center gap-2 transition"
+                                >
+                                    ← Voltar para a lista do elenco
+                                </button>
+
+                                <div className="bg-fut-card border border-fut-border rounded-3xl overflow-hidden shadow-2xl">
+                                    <div className="hero-stadium p-6 md:p-8 border-b border-fut-border">
+                                        <span className="text-fut-pitch text-xs font-extrabold uppercase tracking-widest block mb-1">Ficha Técnica</span>
+                                        <h1 className="text-2xl md:text-3xl font-black">{editando !== null ? 'Editar Atleta' : 'Cadastrar Novo Jogador'}</h1>
+                                        <p className="text-fut-subtext text-xs mt-1">Preencha os dados do atleta para atualização direta no banco de dados REST.</p>
+                                    </div>
+
+                                    <form onSubmit={salvar} className="p-6 md:p-8 space-y-5">
+                                        {/* Nome e Camisa */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                            <div className="sm:col-span-2">
+                                                <label className={labelCss}>Nome do Atleta *</label>
+                                                <input
+                                                    required
+                                                    value={form.nome}
+                                                    onChange={e => setForm({ ...form, nome: e.target.value })}
+                                                    placeholder="Ex.: Neymar Jr"
+                                                    className={fieldCss}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelCss}>Nº Camisa *</label>
+                                                <input
+                                                    required
+                                                    type="number"
+                                                    min="1"
+                                                    max="99"
+                                                    value={form.numeroCamisa}
+                                                    onChange={e => setForm({ ...form, numeroCamisa: e.target.value })}
+                                                    placeholder="Ex.: 10"
+                                                    className={fieldCss}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Posição e Perna */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className={labelCss}>Posição Principal *</label>
+                                                <select
+                                                    required
+                                                    value={form.posicao}
+                                                    onChange={e => setForm({ ...form, posicao: e.target.value })}
+                                                    className={fieldCss}
+                                                >
+                                                    <option value="GOL">Goleiro (GOL)</option>
+                                                    <option value="ZAG">Zagueiro (ZAG)</option>
+                                                    <option value="LAT">Lateral (LAT)</option>
+                                                    <option value="MEI">Meio-Campo (MEI)</option>
+                                                    <option value="ATA">Atacante (ATA)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className={labelCss}>Perna Preferida</label>
+                                                <select
+                                                    value={form.pernaPreferida}
+                                                    onChange={e => setForm({ ...form, pernaPreferida: e.target.value })}
+                                                    className={fieldCss}
+                                                >
+                                                    <option value="DIREITA">Direita</option>
+                                                    <option value="ESQUERDA">Esquerda</option>
+                                                    <option value="AMBIDESTRO">Ambidestro</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* Data Nascimento e Clube Anterior */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className={labelCss}>Data de Nascimento</label>
+                                                <input
+                                                    type="date"
+                                                    value={form.dataNascimento}
+                                                    onChange={e => setForm({ ...form, dataNascimento: e.target.value })}
+                                                    className={fieldCss}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelCss}>Clube Anterior / Origem</label>
+                                                <input
+                                                    value={form.clubeAnterior}
+                                                    onChange={e => setForm({ ...form, clubeAnterior: e.target.value })}
+                                                    placeholder="Ex.: Santos FC"
+                                                    className={fieldCss}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Altura, Peso e Situação */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                            <div>
+                                                <label className={labelCss}>Altura (m)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={form.altura}
+                                                    onChange={e => setForm({ ...form, altura: e.target.value })}
+                                                    placeholder="Ex.: 1.75"
+                                                    className={fieldCss}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelCss}>Peso (kg)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    value={form.peso}
+                                                    onChange={e => setForm({ ...form, peso: e.target.value })}
+                                                    placeholder="Ex.: 70"
+                                                    className={fieldCss}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelCss}>Situação / Condição</label>
+                                                <select
+                                                    value={form.situacao}
+                                                    onChange={e => setForm({ ...form, situacao: e.target.value })}
+                                                    className={fieldCss}
+                                                >
+                                                    <option value="TITULAR">Titular</option>
+                                                    <option value="RELACIONADO">Relacionado</option>
+                                                    <option value="LESIONADO">Lesionado (DM)</option>
+                                                    <option value="SUSPENSO">Suspenso</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* Observações */}
+                                        <div>
+                                            <label className={labelCss}>Atributos e Observações Táticas</label>
+                                            <textarea
+                                                rows="3"
+                                                value={form.observacoes}
+                                                onChange={e => setForm({ ...form, observacoes: e.target.value })}
+                                                placeholder="Ex.: Ponto forte em bolas paradas, rápida aceleração..."
+                                                className={fieldCss}
+                                            />
+                                        </div>
+
+                                        {/* Buttons */}
+                                        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setScreen('principal'); setEditando(null); setForm(EMPTY_PLAYER); }}
+                                                className="flex-1 py-3.5 rounded-xl border border-fut-border text-xs font-bold hover:bg-fut-dark transition"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="flex-1 py-3.5 rounded-xl bg-fut-pitch hover:bg-fut-pitchHover text-black font-black text-xs shadow-lg shadow-fut-pitch/20 transition transform active:scale-95"
+                                            >
+                                                {editando !== null ? 'Salvar Alterações (PUT)' : 'Cadastrar Atleta (POST)'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </section>
+                        )}
+                    </div>
+                </main>
+
+                {/* Backend API Configuration Modal */}
+                {showConfig && (
+                    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="modal max-w-lg w-full p-6 rounded-3xl space-y-5 shadow-2xl">
+                            <div className="flex justify-between items-center">
+                                <h3 className="font-black text-lg">Configurar Endpoint da API REST</h3>
+                                <button onClick={() => setShowConfig(false)} className="text-fut-subtext hover:text-white text-xl font-bold">✕</button>
+                            </div>
+                            <p className="text-fut-subtext text-xs leading-relaxed">
+                                Informe a URL base do seu servidor Spring Boot / Express / REST. O front-end efetuará as requisições GET, POST, PUT e DELETE neste endpoint.
+                            </p>
+                            <div>
+                                <label className={labelCss}>URL Base da API</label>
+                                <input
+                                    value={urlEdit}
+                                    onChange={e => setUrlEdit(e.target.value)}
+                                    placeholder="http://localhost:8080/api/jogadores"
+                                    className={fieldCss}
+                                />
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowConfig(false)} className="flex-1 py-3 rounded-xl border border-fut-border text-xs font-bold">
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (urlEdit.trim()) {
+                                            setApiUrl(urlEdit.trim().replace(/\/$/, ''));
+                                            setShowConfig(false);
+                                        }
+                                    }}
+                                    className="flex-1 py-3 rounded-xl bg-fut-pitch text-black font-black text-xs hover:bg-fut-pitchHover transition"
+                                >
+                                    Salvar e Sincronizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Delete Confirmation Modal */}
+                {deletando !== null && (
+                    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="modal max-w-sm w-full p-6 rounded-3xl text-center space-y-5 shadow-2xl">
+                            <div className="mx-auto w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+                                <Icons.Trash size={26} />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-lg">Remover Atleta do Elenco?</h3>
+                                <p className="text-fut-subtext text-xs mt-2">
+                                    Esta ação enviará uma requisição <code className="text-rose-400">DELETE</code> para a API para remover o ID <span className="text-white font-bold">#{deletando}</span>.
+                                </p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setDeletando(null)} className="flex-1 py-3 rounded-xl bg-fut-dark border border-fut-border font-bold text-xs">
+                                    Cancelar
+                                </button>
+                                <button onClick={() => excluir(deletando)} className="flex-1 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 font-black text-xs text-white transition shadow-lg shadow-rose-600/30">
+                                    Confirmar Exclusão
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Render App
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
